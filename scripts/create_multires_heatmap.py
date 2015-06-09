@@ -210,6 +210,7 @@ def main():
     for i in range(len(all_indices)):
         total_bins += all_indices[i].shape[0]
     # Header contains:
+    # magic number - 42054205 (8 btyes)
     # Top resolution - int32
     # Bottom resolution - int32
     # Zoom factor - int32
@@ -219,8 +220,8 @@ def main():
     # Total data bins (indices offset) - int32
     # Total bins (data + indices) - int32
     output = open(args.output, 'wb')
-    output.write(struct.pack('iiiiiiii', args.lres, args.hres, args.zoom, args.minobs, mapping_start,
-                                       all_data[0].shape[0], data_bins, total_bins))
+    output.write(struct.pack('iiiiiiiii', int('42054205', 16), args.lres, args.hres, args.zoom, args.minobs,
+                             mapping_start, all_data[0].shape[0], data_bins, total_bins))
     for i in range(len(all_data)):
         output.write(all_data[i].tostring())
     for i in range(len(all_indices)):

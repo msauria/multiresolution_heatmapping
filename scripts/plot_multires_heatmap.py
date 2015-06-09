@@ -12,7 +12,10 @@ pixels = 400
 def main():
     parser = generate_parser()
     args = parser.parse_args()
-    header, infile = load_file(args.heatmap)
+    temp = load_file(args.heatmap)
+    if temp is None:
+        return None
+    header, infile = temp
     if args.start is None:
         args.start = header['start']
     if args.start2 is None:
@@ -129,9 +132,13 @@ def paint_square(canvas, header, args, data, resolution, start1, start2):
 
 def load_file(fname):
     infile = open(fname, 'rb')
+    magic_number = hex(struct.unpack('i', infile.read(4))[0])
+    if magic_number != '0x42054205':
+        print >> sys.stderr, ('File does not appear to be a multi-resolution heatmap file.\n'),
+        return None
     lres, hres, zoom, minobs, start, n_bins, d_bins, t_bins = struct.unpack('iiiiiiii', infile.read(32))
     header = {'lres':lres, 'hres':hres, 'zoom':zoom, 'start':start, 'n_bins':n_bins, 'd_bins':d_bins,
-              't_bins':t_bins, 'offset':32}
+              't_bins':t_bins, 'offset':36}
     header['n_levels'] = int(numpy.round(numpy.log(lres / float(hres)) / numpy.log(zoom))) + 1
     header['n'] = int((0.25 + 2 * n_bins) ** 0.5 - 0.5)
     header['i_bins'] = header['t_bins'] - header['d_bins']
