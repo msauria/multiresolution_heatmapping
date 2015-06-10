@@ -34,13 +34,19 @@ def main():
         paint_canvas(canvas, header, args, infile)
         canvas = canvas.transpose(1, 0, 2)
     infile.close()
-    plot_canvas(canvas, args.output)
+    plot_canvas(canvas, args)
 
-def plot_canvas(data, outfname):
+def plot_canvas(data, args):
     valid = numpy.where(data[:, :, 1] > 0.0)
-    data[valid[0], valid[1], 0] -= numpy.amin(data[valid[0], valid[1], 0])
-    data[valid[0], valid[1], 0] /= numpy.amax(data[valid[0], valid[1], 0]) * 0.5
-    data[valid[0], valid[1], 0] -= 1.0
+    if args.minscore is None:
+        data[valid[0], valid[1], 0] -= numpy.amin(data[valid[0], valid[1], 0])
+    else:
+        data[valid[0], valid[1], 0] -= args.minscore
+    if args.maxscore is None:
+        data[valid[0], valid[1], 0] /= numpy.amax(data[valid[0], valid[1], 0]) * 0.5
+    else:
+        data[valid[0], valid[1], 0] /= args.maxscore * 0.5
+    data[valid[0], valid[1], 0] = numpy.maximum(0.0, numpy.minimum(2.0, data[valid[0], valid[1], 0])) - 1.0
     img = numpy.zeros((data.shape[0], data.shape[0]), dtype=numpy.uint32)
     img.fill(int('ff999999', 16))
     where = numpy.where((data[:, :, 1] > 0.0) * (data[:, :, 0] >= 0.0))
@@ -50,7 +56,7 @@ def plot_canvas(data, outfname):
     img[where] = ((256 ** 3 + 256 ** 2) * 255 + (257) *
                   (255 + numpy.round(255.0 * data[where[0], where[1], 0]).astype(numpy.int32)))
     img = Image.frombuffer('RGBA', img.shape, img, 'raw', 'RGBA', 0, 1)
-    img.save(outfname)
+    img.save(args.output)
 
 def paint_canvas(canvas, header, args, infile):
     start_pos1 = max(0, (args.start - header['start']) / header['lres'])
@@ -154,8 +160,12 @@ def generate_parser():
         action='store', help="The second region start coordinate to plot. If no value is passed, this will be set to the same value as start. [default: %(default)s]")
     parser.add_argument("-w", "--width", dest="width", required=False, type=int, default=None,
         action='store', help="The width of the regions to plot. If no value is set, this will be set to the distance between min(start, start2) and the end of the last bin in the heatmap. [default: %(default)s]")
-    parser.add_argument("-m", "--max-resolution", dest="maxres", required=False, type=int, default=None,
+    parser.add_argument("-r", "--max-resolution", dest="maxres", required=False, type=int, default=None,
         action='store', help="A maximum resolution bound for plotting. [default: %(default)s]")
+    parser.add_argument("-m", "--min-score", dest="minscore", required=False, type=int, default=None,
+        action='store', help="The minimum plotting score. [default: %(default)s]")
+    parser.add_argument("-x", "--max-score", dest="maxscore", required=False, type=int, default=None,
+        action='store', help="The maximum plotting score. [default: %(default)s]")
     parser.add_argument(dest="heatmap", type=str,
         help="The name of a HiFive multi-resolution heatmap file to construct the image from.")
     parser.add_argument(dest="output", type=str,
