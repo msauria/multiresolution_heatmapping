@@ -3,6 +3,7 @@
 import sys
 import argparse as ap
 import struct
+import binascii
 
 import numpy
 from PIL import Image
@@ -138,8 +139,8 @@ def paint_square(canvas, header, args, data, resolution, start1, start2):
 
 def load_file(fname):
     infile = open(fname, 'rb')
-    magic_number = hex(struct.unpack('i', infile.read(4))[0])
-    if magic_number != '0x42054205':
+    magic_number = infile.read(4)
+    if magic_number != binascii.a2b_hex('42054205'):
         print >> sys.stderr, ('File does not appear to be a multi-resolution heatmap file.\n'),
         return None
     lres, hres, zoom, minobs, start, n_bins, d_bins, t_bins = struct.unpack('iiiiiiii', infile.read(32))

@@ -3,6 +3,7 @@
 import sys
 import argparse as ap
 import struct
+import binascii
 
 import numpy
 from scipy import weave
@@ -220,7 +221,8 @@ def main():
     # Total data bins (indices offset) - int32
     # Total bins (data + indices) - int32
     output = open(args.output, 'wb')
-    output.write(struct.pack('iiiiiiiii', int('42054205', 16), args.lres, args.hres, args.zoom, args.minobs,
+    output.write(binascii.a2b_hex('42054205'))
+    output.write(struct.pack('iiiiiiii', args.lres, args.hres, args.zoom, args.minobs,
                              mapping_start, all_data[0].shape[0], data_bins, total_bins))
     for i in range(len(all_data)):
         output.write(all_data[i].tostring())
