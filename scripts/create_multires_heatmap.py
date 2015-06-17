@@ -28,6 +28,7 @@ def main():
     bins = (span - 1) / args.lres + 1
     mapping_start = int(round((mapping[-1, 1] + mapping[0, 0]) / 2 - (bins * args.lres) / 2.0))
     mapping[:, :2] -= mapping_start
+    mapping_stop = bins * args.lres + mapping_start
     mids = (mapping[:, 0] + mapping[:, 1]) / 2
     all_data = []
     all_indices = []
@@ -200,30 +201,42 @@ def main():
         pos += where.shape[0]
         temp_indices = new_temp_indices[where]
         all_data.append(new_data[where])
-        old_n_bins = n_bins
         if h < n_res - 1:
             all_indices.append(numpy.zeros(all_data[-1].shape[0], dtype=numpy.int32))
             all_indices[-1].fill(-1)
     data_bins = 0
+    minscore = numpy.inf
+    maxscore = -numpy.inf
     for i in range(len(all_data)):
         data_bins += all_data[i].shape[0]
+        minscore = min(numpy.amin(all_data[i][numpy.where(numpy.logical_not(numpy.isnan(all_data[i])))]), minscore)
+        maxscore = max(numpy.amax(all_data[i][numpy.where(numpy.logical_not(numpy.isnan(all_data[i])))]), maxscore)
     total_bins = data_bins
     for i in range(len(all_indices)):
         total_bins += all_indices[i].shape[0]
     # Header contains:
     # magic number - 42054205 (8 btyes)
+    # Header size - int32 (either 56 or 68 bytes for cis or trans, respectively)
     # Top resolution - int32
     # Bottom resolution - int32
     # Zoom factor - int32
     # Minimum observation cutoff - int32
-    # First bin coordinate - int32
-    # Top level number of bins - int32
+    # Minimum score - int32
+    # Maximum score - int32
+    # Trans flag - int32
+    # Minimum coordinate - int32
+    # if trans: Second chromosome minimum coordinate - int32
+    # Maximum coordinate - int32
+    # if trans: Second chromosome maximum coordinate - int32
+    # Top level number of divisions - int32
+    # if trans: Second chromosome top level number of bins - int32
     # Total data bins (indices offset) - int32
     # Total bins (data + indices) - int32
     output = open(args.output, 'wb')
     output.write(binascii.a2b_hex('42054205'))
-    output.write(struct.pack('iiiiiiii', args.lres, args.hres, args.zoom, args.minobs,
-                             mapping_start, all_data[0].shape[0], data_bins, total_bins))
+    output.write(struct.pack('iiiiiffiiiiii', 56, args.lres, args.hres, args.zoom, args.minobs,
+                             minscore, maxscore, 0, mapping_start, mapping_stop,
+                             bins, data_bins, total_bins))
     for i in range(len(all_data)):
         output.write(all_data[i].tostring())
     for i in range(len(all_indices)):
