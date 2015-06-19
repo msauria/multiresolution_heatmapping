@@ -14,7 +14,6 @@ def main():
     if temp is None:
         return None
     header, infile = temp
-    print header
     if header['trans']:
         if sys.argv[7] == '0':
             transpose = False
@@ -268,7 +267,9 @@ def plot_squares(data, args, header, fname):
             c.fill(path.rect(x, y, x_width, y_width), [g1.getcolor(score)])
         else:
             c.fill(path.rect(x, y, x_width, y_width), [g2.getcolor(-score)])
-    c.writePDFfile(fname)
+    d = canvas.canvas()
+    d.insert(c, [trafo.scale(-1, -1)])
+    d.writePDFfile(fname)
 
 def load_file(fname):
     try:
