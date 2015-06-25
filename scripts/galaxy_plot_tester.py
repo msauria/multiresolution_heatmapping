@@ -9,6 +9,10 @@ def main():
     args = parser.parse_args()
     args.span1 = args.end1 - args.start1
     args.span2 = args.end2 - args.start2
+    temp = urllib2.urlopen("http://localhost:8080/api/datasets/%s?data_type=raw_data&provider=json&chrom1=%s&chrom2=%s&start1=%i&start2=%i&stop1=%i&stop2=%i&min_resolution=%i&max_resolution=%s&chromosomes=true" %
+        (args.dataset, args.chrom1, args.chrom2, args.start1, args.start2, args.end1, args.end2, args.lres, args.hres)).read()
+    chroms = eval(temp.replace('false', 'False').replace('true', 'True'))['data'][0]
+    print chroms
     temp = urllib2.urlopen("http://localhost:8080/api/datasets/%s?data_type=raw_data&provider=json&chrom1=%s&chrom2=%s&start1=%i&start2=%i&stop1=%i&stop2=%i&min_resolution=%i&max_resolution=%s&header=true" %
         (args.dataset, args.chrom1, args.chrom2, args.start1, args.start2, args.end1, args.end2, args.lres, args.hres)).read()
     header = eval(temp.replace('false', 'False').replace('true', 'True'))['data'][0]
@@ -22,6 +26,7 @@ def main():
 
 def plot_data(data, args, header):
     canvas = numpy.zeros((args.canvas, args.canvas * args.span2 / args.span1), dtype=numpy.float32)
+    canvas.fill(-10)
     for square in data:
         start1 = int(round((square['x1'] - args.start1) / float(args.span1) * args.canvas))
         stop1 = int(round((square['x2'] - args.start1) / float(args.span1) * args.canvas))
@@ -32,9 +37,10 @@ def plot_data(data, args, header):
     canvas = (canvas * 255)[::-1, :].astype(numpy.int32)
     img = numpy.zeros(canvas.shape, dtype=numpy.uint32)
     img.shape = (img.shape[1], img.shape[0])
+    img.fill(int("ff555555", 16))
     where = numpy.where(canvas >= 0)
     img[where[1], where[0]] = (256 ** 3 + 1) * 255 + (255 - canvas[where]) * (256 ** 2 + 256)
-    where = numpy.where(canvas < 0)
+    where = numpy.where((canvas < 0) * (canvas > -10))
     img[where[1], where[0]] = (256 ** 3 + 256 ** 2) * 255 + (255 + canvas[where]) * (256 + 1)
     pilImage = Image.frombuffer('RGBA', canvas.shape, img, 'raw', 'RGBA', 0, 1)
     pilImage.save(args.outfile)
